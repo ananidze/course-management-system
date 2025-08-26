@@ -16,7 +16,6 @@ from api.core.permissions import (
 from api.core.documentation import (
     CommonResponses,
     CommonParameters,
-    CourseResponses,
 )
 from api.core.viewsets import DocumentedModelViewSet
 from api.core.pagination import StandardResultsSetPagination
@@ -49,7 +48,7 @@ from api.v1.lectures.serializers import (
             CommonParameters.ORDERING,
         ],
         responses={
-            200: CourseResponses.COURSE_LIST,
+            200: CourseListSerializer(many=True),
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
         },
@@ -58,8 +57,9 @@ from api.v1.lectures.serializers import (
     create=extend_schema(
         summary="Create Course",
         description="Create a new course (teachers only)",
+        request=CourseCreateSerializer,
         responses={
-            201: CourseResponses.COURSE_CREATED,
+            201: CourseDetailSerializer,
             400: CommonResponses.VALIDATION_ERROR,
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
@@ -70,7 +70,7 @@ from api.v1.lectures.serializers import (
         summary="Get Course",
         description="Retrieve a specific course by ID",
         responses={
-            200: CourseResponses.COURSE_CREATED,
+            200: CourseDetailSerializer,
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
             404: CommonResponses.NOT_FOUND,
@@ -80,8 +80,9 @@ from api.v1.lectures.serializers import (
     update=extend_schema(
         summary="Update Course",
         description="Update a specific course by ID (course owner only)",
+        request=CourseUpdateSerializer,
         responses={
-            200: CourseResponses.COURSE_CREATED,
+            200: CourseDetailSerializer,
             400: CommonResponses.VALIDATION_ERROR,
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
@@ -92,8 +93,9 @@ from api.v1.lectures.serializers import (
     partial_update=extend_schema(
         summary="Partially Update Course",
         description="Partially update a specific course by ID (course owner only)",
+        request=CourseUpdateSerializer,
         responses={
-            200: CourseResponses.COURSE_CREATED,
+            200: CourseDetailSerializer,
             400: CommonResponses.VALIDATION_ERROR,
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
@@ -167,6 +169,25 @@ class CourseViewSet(DocumentedModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(teacher=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        course = serializer.instance
+        response_serializer = CourseDetailSerializer(course)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        response_serializer = CourseDetailSerializer(instance)
+        return Response(response_serializer.data)
 
     @extend_schema(
         summary="Add Student to Course",
@@ -464,16 +485,11 @@ class CourseViewSet(DocumentedModelViewSet):
 
     @extend_schema(
         summary="List Available Courses",
-        description="Retrieve a paginated list of all available courses for students to browse",
-        parameters=[
-            CommonParameters.PAGE,
-            CommonParameters.PAGE_SIZE,
-            CommonParameters.SEARCH,
-            CommonParameters.ORDERING,
-        ],
+        description="Paginated list of available courses for students.",
         responses={
-            200: CourseResponses.COURSE_LIST,
+            200: CourseListSerializer(many=True),
             401: CommonResponses.UNAUTHORIZED,
+            403: CommonResponses.PERMISSION_DENIED,
         },
         tags=["courses"],
     )

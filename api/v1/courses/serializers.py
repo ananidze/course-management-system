@@ -8,7 +8,7 @@ class UserMinimalSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name", "full_name", "role"]
+        fields = ["id", "first_name", "last_name", "full_name", "role"]
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -18,9 +18,6 @@ class CourseSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "description",
-            "teacher",
-            "students",
-            "teachers",
             "is_active",
             "created_at",
             "updated_at",
@@ -34,18 +31,8 @@ class CourseCreateSerializer(serializers.ModelSerializer):
         fields = [
             "title",
             "description",
-            "teacher",
-            "students",
-            "teachers",
             "is_active",
         ]
-
-    def validate_teacher(self, value):
-        if value and value.role != User.Role.TEACHER:
-            raise serializers.ValidationError(
-                "Only teachers can be assigned as course teachers."
-            )
-        return value
 
 
 class CourseUpdateSerializer(serializers.ModelSerializer):
@@ -54,24 +41,13 @@ class CourseUpdateSerializer(serializers.ModelSerializer):
         fields = [
             "title",
             "description",
-            "teacher",
-            "students",
-            "teachers",
             "is_active",
         ]
 
-    def validate_teacher(self, value):
-        if value and value.role != User.Role.TEACHER:
-            raise serializers.ValidationError(
-                "Only teachers can be assigned as course teachers."
-            )
-        return value
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):
     teacher = UserMinimalSerializer(read_only=True)
-    students = UserMinimalSerializer(many=True, read_only=True)
-    teachers = UserMinimalSerializer(many=True, read_only=True)
     student_count = serializers.SerializerMethodField()
     teacher_count = serializers.SerializerMethodField()
 
@@ -82,8 +58,6 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "teacher",
-            "students",
-            "teachers",
             "student_count",
             "teacher_count",
             "is_active",

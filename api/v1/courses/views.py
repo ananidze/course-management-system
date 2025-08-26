@@ -660,7 +660,6 @@ class CourseViewSet(DocumentedModelViewSet):
         parameters=[
             CommonParameters.PAGE,
             CommonParameters.PAGE_SIZE,
-            CommonParameters.ORDERING,
         ],
         responses={
             200: CourseStudentSerializer(many=True),
@@ -680,11 +679,8 @@ class CourseViewSet(DocumentedModelViewSet):
                 status_code=status.HTTP_403_FORBIDDEN,
             )
 
-        students = course.students.all()
-
-        ordering = request.query_params.get("ordering", "user__first_name")
-        if ordering:
-            students = students.order_by(ordering)
+        # Filter students to ensure they have the STUDENT role
+        students = course.students.filter(role=User.Role.STUDENT)
 
         page = self.paginate_queryset(students)
         if page is not None:

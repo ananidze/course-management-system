@@ -33,7 +33,7 @@ class IsCourseStudent(BasePermission):
         return request.user.is_authenticated and request.user.role == User.Role.STUDENT
 
     def has_object_permission(self, request, view, obj):
-        return request.user in obj.students.all()
+        return request.user in obj.students.filter(role=User.Role.STUDENT)
 
 
 class IsLectureTeacher(BasePermission):

@@ -40,6 +40,7 @@ ALLOWED_HOSTS = config(
 # Application definition
 
 INSTALLED_APPS = [
+    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -111,7 +112,9 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": (
+            "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+        ),
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -203,9 +206,7 @@ CORS_ALLOW_CREDENTIALS = True
 # drf-spectacular settings
 SPECTACULAR_SETTINGS = {
     "TITLE": "Course Management System API",
-    "DESCRIPTION": (
-        "API for managing courses, lectures, homework, and student submissions"
-    ),
+    "DESCRIPTION": "API for managing courses, lectures, homework, and student submissions",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,

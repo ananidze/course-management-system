@@ -107,3 +107,38 @@ class LogoutSerializer(serializers.Serializer):
     refresh_token = serializers.CharField(
         required=False, help_text="Refresh token to blacklist"
     )
+
+
+# Response serializers for Swagger documentation
+class TokenSerializer(serializers.Serializer):
+    access = serializers.CharField(help_text="JWT access token")
+    refresh = serializers.CharField(help_text="JWT refresh token")
+
+
+class LoginResponseSerializer(serializers.Serializer):
+    tokens = TokenSerializer()
+    user = UserProfileSerializer()
+
+
+class RegistrationResponseSerializer(serializers.Serializer):
+    user = UserProfileSerializer()
+
+
+class APIResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(
+        help_text="Indicates if the operation was successful"
+    )
+    message = serializers.CharField(help_text="Response message")
+    data = serializers.JSONField(help_text="Response data", required=False)
+
+
+class LoginAPIResponseSerializer(APIResponseSerializer):
+    data = LoginResponseSerializer(help_text="Login response data")
+
+
+class RegistrationAPIResponseSerializer(APIResponseSerializer):
+    data = RegistrationResponseSerializer(help_text="Registration response data")
+
+
+class UserProfileAPIResponseSerializer(APIResponseSerializer):
+    data = UserProfileSerializer(help_text="User profile data")

@@ -118,59 +118,6 @@ class CommonParameters:
     )
 
 
-# Authentication Responses
-class AuthResponses:
-    """Authentication-specific response examples."""
-
-    LOGIN_SUCCESS = OpenApiResponse(
-        description="Login successful",
-        examples=[
-            OpenApiExample(
-                "Login Success",
-                value={
-                    "success": True,
-                    "message": "Login successful",
-                    "data": {
-                        "tokens": {
-                            "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-                            "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-                        },
-                        "user": {
-                            "id": 1,
-                            "email": "user@example.com",
-                            "first_name": "John",
-                            "last_name": "Doe",
-                            "role": "student",
-                        },
-                    },
-                },
-            )
-        ],
-    )
-
-    REGISTRATION_SUCCESS = OpenApiResponse(
-        description="User registered successfully",
-        examples=[
-            OpenApiExample(
-                "Registration Success",
-                value={
-                    "success": True,
-                    "message": "User registered successfully",
-                    "data": {
-                        "user": {
-                            "id": 1,
-                            "email": "user@example.com",
-                            "first_name": "John",
-                            "last_name": "Doe",
-                            "role": "student",
-                        },
-                    },
-                },
-            )
-        ],
-    )
-
-
 # Course Responses
 class CourseResponses:
     """Course-specific response examples."""

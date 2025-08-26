@@ -1,16 +1,19 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
-from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample
+from drf_spectacular.utils import extend_schema
 from django.contrib.auth import logout
 
 from api.core.responses import APIResponse
-from api.core.documentation import AuthResponses, CommonResponses
+from api.core.documentation import CommonResponses
 from .serializers import (
     UserRegistrationSerializer,
     UserLoginSerializer,
     UserProfileSerializer,
     LogoutSerializer,
+    LoginAPIResponseSerializer,
+    RegistrationAPIResponseSerializer,
+    UserProfileAPIResponseSerializer,
 )
 
 
@@ -19,7 +22,7 @@ from .serializers import (
     description="Register a new user account with email, password, and role selection",
     request=UserRegistrationSerializer,
     responses={
-        201: AuthResponses.REGISTRATION_SUCCESS,
+        201: RegistrationAPIResponseSerializer,
         400: CommonResponses.VALIDATION_ERROR,
     },
     tags=["auth"],
@@ -47,7 +50,7 @@ def user_registration(request):
     ),
     request=UserLoginSerializer,
     responses={
-        200: AuthResponses.LOGIN_SUCCESS,
+        200: LoginAPIResponseSerializer,
         400: CommonResponses.VALIDATION_ERROR,
     },
     tags=["auth"],
@@ -100,25 +103,7 @@ def user_logout(request):
     summary="Get Current User",
     description="Retrieve the profile of the currently authenticated user",
     responses={
-        200: OpenApiResponse(
-            description="User profile retrieved successfully",
-            examples=[
-                OpenApiExample(
-                    "Success Response",
-                    value={
-                        "success": True,
-                        "message": "User profile retrieved successfully",
-                        "data": {
-                            "id": 1,
-                            "email": "user@example.com",
-                            "first_name": "John",
-                            "last_name": "Doe",
-                            "role": "student",
-                        },
-                    },
-                )
-            ],
-        ),
+        200: UserProfileAPIResponseSerializer,
         401: CommonResponses.UNAUTHORIZED,
     },
     tags=["auth"],

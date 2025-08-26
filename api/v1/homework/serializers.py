@@ -31,20 +31,10 @@ class HomeworkCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Homework
         fields = [
-            "lecture",
             "title",
             "description",
             "due_date",
         ]
-
-    def validate_lecture(self, value):
-        user = self.context["request"].user
-        course = value.course
-        if not (user == course.teacher or user in course.teachers.all()):
-            raise serializers.ValidationError(
-                "You can only create homework for lectures in courses you teach."
-            )
-        return value
 
 
 class HomeworkUpdateSerializer(serializers.ModelSerializer):

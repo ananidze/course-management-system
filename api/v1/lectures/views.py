@@ -1,5 +1,4 @@
 from rest_framework import viewsets
-from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import (
     extend_schema,
@@ -181,7 +180,19 @@ class LectureViewSet(viewsets.ModelViewSet):
 
         instance.delete()
 
-    @extend_schema(
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="List Homework for Lecture",
+        description="Retrieve all homework assignments for a specific lecture",
+        responses={
+            200: HomeworkDetailSerializer(many=True),
+            403: CommonResponses.PERMISSION_DENIED,
+            404: CommonResponses.NOT_FOUND,
+        },
+        tags=["homework"],
+    ),
+    create=extend_schema(
         summary="Create Homework for Lecture",
         description=("Create a new homework assignment for a specific lecture"),
         request=HomeworkCreateSerializer,
@@ -193,34 +204,18 @@ class LectureViewSet(viewsets.ModelViewSet):
             404: CommonResponses.NOT_FOUND,
         },
         tags=["homework"],
-    )
-    @action(detail=True, methods=["post"], url_path="homework")
-    def create_homework(self, request, pk=None):  # noqa: ARG002
-        try:
-            lecture = self.get_object()
-            user = request.user
-
-            if not lecture.course.is_teacher(user):
-                raise PermissionDeniedException(
-                    "Only course teachers can create homework for this lecture."
-                )
-
-            serializer = HomeworkCreateSerializer(
-                data=request.data, context={"request": request}
-            )
-            if serializer.is_valid():
-                homework = serializer.save(lecture=lecture)
-                return APIResponse.created(
-                    data=HomeworkDetailSerializer(homework).data,
-                    message="Homework created successfully",
-                )
-            return APIResponse.validation_error(
-                errors=serializer.errors, message="Homework creation failed"
-            )
-        except Lecture.DoesNotExist:
-            raise ResourceNotFoundException("Lecture not found")
-
-    @extend_schema(
+    ),
+    retrieve=extend_schema(
+        summary="Get Homework for Lecture",
+        description="Retrieve a specific homework assignment for a lecture",
+        responses={
+            200: HomeworkDetailSerializer,
+            403: CommonResponses.PERMISSION_DENIED,
+            404: CommonResponses.NOT_FOUND,
+        },
+        tags=["homework"],
+    ),
+    update=extend_schema(
         summary="Update Homework for Lecture",
         description=(
             "Update a specific homework assignment for a lecture (teachers only)"
@@ -233,11 +228,178 @@ class LectureViewSet(viewsets.ModelViewSet):
             404: CommonResponses.NOT_FOUND,
         },
         tags=["homework"],
-    )
-    @action(detail=True, methods=["put"], url_path="homework/(?P<homework_id>[^/.]+)")
-    def update_homework(self, request, pk=None, homework_id=None):  # noqa: ARG002
+    ),
+    partial_update=extend_schema(
+        summary="Partially Update Homework for Lecture",
+        description=(
+            "Partially update a specific homework assignment for a lecture (teachers only)"
+        ),
+        request=HomeworkUpdateSerializer,
+        responses={
+            200: HomeworkDetailSerializer,
+            400: CommonResponses.VALIDATION_ERROR,
+            403: CommonResponses.PERMISSION_DENIED,
+            404: CommonResponses.NOT_FOUND,
+        },
+        tags=["homework"],
+    ),
+    destroy=extend_schema(
+        summary="Delete Homework from Lecture",
+        description=(
+            "Delete a specific homework assignment from a lecture (teachers only)"
+        ),
+        responses={
+            204: CommonResponses.SUCCESS_RESPONSE,
+            403: CommonResponses.PERMISSION_DENIED,
+            404: CommonResponses.NOT_FOUND,
+        },
+        tags=["homework"],
+    ),
+)
+class LectureHomeworkViewSet(viewsets.ModelViewSet):
+    serializer_class = HomeworkDetailSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        lecture_id = self.kwargs.get("lecture_pk")
+        return Homework.objects.filter(lecture_id=lecture_id).select_related(
+            "lecture", "lecture__course"
+        )
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            permission_classes = [IsLectureTeacher]
+        elif self.action in ["list", "retrieve"]:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return HomeworkCreateSerializer
+        elif self.action in ["update", "partial_update"]:
+            return HomeworkUpdateSerializer
+        return HomeworkDetailSerializer
+
+    def perform_create(self, serializer):
+        lecture_id = self.kwargs.get("lecture_pk")
         try:
-            lecture = self.get_object()
+            lecture = Lecture.objects.get(id=lecture_id)
+            user = self.request.user
+
+            if not lecture.course.is_teacher(user):
+                raise PermissionDeniedException(
+                    "Only course teachers can create homework for this lecture."
+                )
+
+            serializer.save(lecture=lecture)
+        except Lecture.DoesNotExist:
+            raise ResourceNotFoundException("Lecture not found")
+
+    def perform_update(self, serializer):
+        lecture_id = self.kwargs.get("lecture_pk")
+        try:
+            lecture = Lecture.objects.get(id=lecture_id)
+            user = self.request.user
+
+            if not lecture.course.is_teacher(user):
+                raise PermissionDeniedException(
+                    "Only course teachers can update homework for this lecture."
+                )
+
+            serializer.save()
+        except Lecture.DoesNotExist:
+            raise ResourceNotFoundException("Lecture not found")
+
+    def perform_destroy(self, instance):
+        lecture_id = self.kwargs.get("lecture_pk")
+        try:
+            lecture = Lecture.objects.get(id=lecture_id)
+            user = self.request.user
+
+            if not lecture.course.is_teacher(user):
+                raise PermissionDeniedException(
+                    "Only course teachers can delete homework for this lecture."
+                )
+
+            instance.delete()
+        except Lecture.DoesNotExist:
+            raise ResourceNotFoundException("Lecture not found")
+
+    def list(self, request, *args, **kwargs):
+        lecture_id = self.kwargs.get("lecture_pk")
+        try:
+            lecture = Lecture.objects.get(id=lecture_id)
+            user = request.user
+
+            if not lecture.course.can_access(user):
+                raise PermissionDeniedException(
+                    "You don't have permission to access this lecture."
+                )
+
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            return APIResponse.success(
+                data=serializer.data,
+                message="Homework list retrieved successfully",
+            )
+        except Lecture.DoesNotExist:
+            raise ResourceNotFoundException("Lecture not found")
+
+    def retrieve(self, request, *args, **kwargs):
+        lecture_id = self.kwargs.get("lecture_pk")
+        try:
+            lecture = Lecture.objects.get(id=lecture_id)
+            user = request.user
+
+            if not lecture.course.can_access(user):
+                raise PermissionDeniedException(
+                    "You don't have permission to access this lecture."
+                )
+
+            instance = self.get_object()
+            serializer = self.get_serializer(instance)
+            return APIResponse.success(
+                data=serializer.data,
+                message="Homework retrieved successfully",
+            )
+        except Lecture.DoesNotExist:
+            raise ResourceNotFoundException("Lecture not found")
+
+    def create(self, request, *args, **kwargs):
+        lecture_id = self.kwargs.get("lecture_pk")
+        try:
+            lecture = Lecture.objects.get(id=lecture_id)
+            user = request.user
+
+            if not lecture.course.is_teacher(user):
+                raise PermissionDeniedException(
+                    "Only course teachers can create homework for this lecture."
+                )
+
+            # Create a copy of the data without the lecture field for validation
+            data = request.data.copy()
+            data.pop("lecture", None)  # Remove lecture field if present
+
+            serializer = self.get_serializer(data=data, context={"request": request})
+            if serializer.is_valid():
+                homework = serializer.save(lecture=lecture)
+                return APIResponse.created(
+                    data=HomeworkDetailSerializer(homework).data,
+                    message="Homework created successfully",
+                )
+            return APIResponse.validation_error(
+                errors=serializer.errors, message="Homework creation failed"
+            )
+        except Lecture.DoesNotExist:
+            raise ResourceNotFoundException("Lecture not found")
+
+    def update(self, request, *args, **kwargs):
+        lecture_id = self.kwargs.get("lecture_pk")
+        try:
+            lecture = Lecture.objects.get(id=lecture_id)
             user = request.user
 
             if not lecture.course.is_teacher(user):
@@ -245,15 +407,13 @@ class LectureViewSet(viewsets.ModelViewSet):
                     "Only course teachers can update homework for this lecture."
                 )
 
-            try:
-                homework = Homework.objects.select_related(
-                    "lecture", "lecture__course"
-                ).get(id=homework_id, lecture=lecture)
-            except Homework.DoesNotExist:
-                raise ResourceNotFoundException("Homework not found")
-
-            serializer = HomeworkUpdateSerializer(
-                homework, data=request.data, context={"request": request}
+            partial = kwargs.pop("partial", False)
+            instance = self.get_object()
+            serializer = self.get_serializer(
+                instance,
+                data=request.data,
+                partial=partial,
+                context={"request": request},
             )
             if serializer.is_valid():
                 updated_homework = serializer.save()
@@ -267,24 +427,10 @@ class LectureViewSet(viewsets.ModelViewSet):
         except Lecture.DoesNotExist:
             raise ResourceNotFoundException("Lecture not found")
 
-    @extend_schema(
-        summary="Delete Homework from Lecture",
-        description=(
-            "Delete a specific homework assignment from a lecture (teachers only)"
-        ),
-        responses={
-            204: CommonResponses.SUCCESS_RESPONSE,
-            403: CommonResponses.PERMISSION_DENIED,
-            404: CommonResponses.NOT_FOUND,
-        },
-        tags=["homework"],
-    )
-    @action(
-        detail=True, methods=["delete"], url_path="homework/(?P<homework_id>[^/.]+)"
-    )
-    def delete_homework(self, request, pk=None, homework_id=None):  # noqa: ARG002
+    def destroy(self, request, *args, **kwargs):
+        lecture_id = self.kwargs.get("lecture_pk")
         try:
-            lecture = self.get_object()
+            lecture = Lecture.objects.get(id=lecture_id)
             user = request.user
 
             if not lecture.course.is_teacher(user):
@@ -292,82 +438,8 @@ class LectureViewSet(viewsets.ModelViewSet):
                     "Only course teachers can delete homework for this lecture."
                 )
 
-            try:
-                homework = Homework.objects.select_related(
-                    "lecture", "lecture__course"
-                ).get(id=homework_id, lecture=lecture)
-            except Homework.DoesNotExist:
-                raise ResourceNotFoundException("Homework not found")
-
-            homework.delete()
+            instance = self.get_object()
+            instance.delete()
             return APIResponse.deleted("Homework deleted successfully")
-        except Lecture.DoesNotExist:
-            raise ResourceNotFoundException("Lecture not found")
-
-    @extend_schema(
-        summary="List Homework for Lecture",
-        description="Retrieve all homework assignments for a specific lecture",
-        responses={
-            200: HomeworkDetailSerializer(many=True),
-            403: CommonResponses.PERMISSION_DENIED,
-            404: CommonResponses.NOT_FOUND,
-        },
-        tags=["homework"],
-    )
-    @action(detail=True, methods=["get"], url_path="homework")
-    def list_homework(self, request, pk=None):  # noqa: ARG002
-        try:
-            lecture = self.get_object()
-            user = request.user
-
-            if not lecture.course.can_access(user):
-                raise PermissionDeniedException(
-                    "You don't have permission to access this lecture."
-                )
-
-            homework_list = lecture.homework_assignments.select_related(
-                "lecture", "lecture__course"
-            ).all()
-            serializer = HomeworkDetailSerializer(homework_list, many=True)
-            return APIResponse.success(
-                data=serializer.data,
-                message="Homework list retrieved successfully",
-            )
-        except Lecture.DoesNotExist:
-            raise ResourceNotFoundException("Lecture not found")
-
-    @extend_schema(
-        summary="Get Homework for Lecture",
-        description="Retrieve a specific homework assignment for a lecture",
-        responses={
-            200: HomeworkDetailSerializer,
-            403: CommonResponses.PERMISSION_DENIED,
-            404: CommonResponses.NOT_FOUND,
-        },
-        tags=["homework"],
-    )
-    @action(detail=True, methods=["get"], url_path="homework/(?P<homework_id>[^/.]+)")
-    def get_homework(self, request, pk=None, homework_id=None):  # noqa: ARG002
-        try:
-            lecture = self.get_object()
-            user = request.user
-
-            if not lecture.course.can_access(user):
-                raise PermissionDeniedException(
-                    "You don't have permission to access this lecture."
-                )
-
-            try:
-                homework = Homework.objects.select_related(
-                    "lecture", "lecture__course"
-                ).get(id=homework_id, lecture=lecture)
-            except Homework.DoesNotExist:
-                raise ResourceNotFoundException("Homework not found")
-
-            serializer = HomeworkDetailSerializer(homework)
-            return APIResponse.success(
-                data=serializer.data,
-                message="Homework retrieved successfully",
-            )
         except Lecture.DoesNotExist:
             raise ResourceNotFoundException("Lecture not found")

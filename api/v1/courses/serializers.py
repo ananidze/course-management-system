@@ -11,6 +11,29 @@ class UserMinimalSerializer(serializers.ModelSerializer):
         fields = ["id", "first_name", "last_name", "full_name", "role"]
 
 
+class CourseStudentSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(source="get_full_name", read_only=True)
+    enrollment_date = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "full_name",
+            "email",
+            "role",
+            "gender",
+            "date_joined",
+            "enrollment_date",
+        ]
+        read_only_fields = ["id", "role", "date_joined"]
+
+    def get_enrollment_date(self, obj):
+        return obj.date_joined
+
+
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
@@ -43,7 +66,6 @@ class CourseUpdateSerializer(serializers.ModelSerializer):
             "description",
             "is_active",
         ]
-
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):

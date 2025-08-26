@@ -28,6 +28,7 @@ from .serializers import (
     CourseDetailSerializer,
     CourseListSerializer,
     CourseEnrollmentSerializer,
+    CourseStudentSerializer,
 )
 from api.v1.lectures.serializers import (
     LectureCreateSerializer,
@@ -130,6 +131,7 @@ class CourseViewSet(DocumentedModelViewSet):
             "remove_student",
             "add_teacher",
             "remove_teacher",
+            "list_students",
         ]:
             permission_classes = [IsCourseTeacher]
         else:
@@ -611,3 +613,43 @@ class CourseViewSet(DocumentedModelViewSet):
 
         course.remove_student(user)
         return APIResponse.success(message="Successfully unenrolled from the course")
+
+    @extend_schema(
+        summary="List Students of a Course",
+        description="Retrieve a paginated list of students enrolled in a specific course.",
+        parameters=[
+            CommonParameters.PAGE,
+            CommonParameters.PAGE_SIZE,
+            CommonParameters.ORDERING,
+        ],
+        responses={
+            200: CourseStudentSerializer(many=True),
+            401: CommonResponses.UNAUTHORIZED,
+            403: CommonResponses.PERMISSION_DENIED,
+            404: CommonResponses.NOT_FOUND,
+        },
+        tags=["courses"],
+    )
+    @action(detail=True, methods=["get"], url_path="students")
+    def list_students(self, request, pk=None):
+        course = self.get_object()
+
+        if not course.is_teacher(request.user):
+            return APIResponse.error(
+                message="You don't have permission to view students of this course.",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        students = course.students.all()
+
+        ordering = request.query_params.get("ordering", "user__first_name")
+        if ordering:
+            students = students.order_by(ordering)
+
+        page = self.paginate_queryset(students)
+        if page is not None:
+            serializer = CourseStudentSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = CourseStudentSerializer(students, many=True)
+        return Response(serializer.data)

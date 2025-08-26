@@ -17,8 +17,6 @@ from api.core.responses import APIResponse
 from api.core.documentation import (
     CommonResponses,
     CommonParameters,
-    HomeworkResponses,
-    SubmissionResponses,
 )
 from api.core.exceptions import (
     PermissionDeniedException,
@@ -50,7 +48,7 @@ from .serializers import (
             CommonParameters.ORDERING,
         ],
         responses={
-            200: HomeworkResponses.HOMEWORK_LIST,
+            200: HomeworkListSerializer(many=True),
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
         },
@@ -61,7 +59,7 @@ from .serializers import (
         description="Create a new homework assignment for a lecture (course teachers only)",
         request=HomeworkCreateSerializer,
         responses={
-            201: HomeworkResponses.HOMEWORK_CREATED,
+            201: HomeworkDetailSerializer,
             400: CommonResponses.VALIDATION_ERROR,
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
@@ -84,7 +82,7 @@ from .serializers import (
         description="Update a specific homework assignment by ID (course teachers only)",
         request=HomeworkUpdateSerializer,
         responses={
-            200: HomeworkResponses.HOMEWORK_CREATED,
+            200: HomeworkDetailSerializer,
             400: CommonResponses.VALIDATION_ERROR,
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
@@ -94,10 +92,10 @@ from .serializers import (
     ),
     partial_update=extend_schema(
         summary="Partially Update Homework",
-        description="Partially update a specific homework assignment by ID (course teachers only)",
+        description="Partially update a homework (teachers only)",
         request=HomeworkUpdateSerializer,
         responses={
-            200: HomeworkResponses.HOMEWORK_CREATED,
+            200: HomeworkDetailSerializer,
             400: CommonResponses.VALIDATION_ERROR,
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
@@ -257,7 +255,7 @@ class HomeworkViewSet(viewsets.ModelViewSet):
         description="Submit homework solution for a specific assignment (students only)",
         request=HomeworkSubmissionCreateSerializer,
         responses={
-            201: HomeworkResponses.SUBMISSION_CREATED,
+            201: HomeworkSubmissionDetailSerializer,
             400: CommonResponses.VALIDATION_ERROR,
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
@@ -302,7 +300,7 @@ class HomeworkViewSet(viewsets.ModelViewSet):
         summary="Get Homework Submissions",
         description="Retrieve submissions for a specific homework assignment ",
         responses={
-            200: SubmissionResponses.SUBMISSION_LIST,
+            200: HomeworkSubmissionDetailSerializer(many=True),
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
             404: CommonResponses.NOT_FOUND,
@@ -361,7 +359,7 @@ class HomeworkViewSet(viewsets.ModelViewSet):
             CommonParameters.ORDERING,
         ],
         responses={
-            200: SubmissionResponses.SUBMISSION_LIST,
+            200: HomeworkSubmissionDetailSerializer(many=True),
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
         },

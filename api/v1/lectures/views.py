@@ -19,8 +19,6 @@ from api.core.responses import APIResponse
 from api.core.documentation import (
     CommonResponses,
     CommonParameters,
-    LectureResponses,
-    HomeworkResponses,
 )
 from api.core.exceptions import (
     PermissionDeniedException,
@@ -52,7 +50,7 @@ from api.v1.homework.serializers import (
             CommonParameters.ORDERING,
         ],
         responses={
-            200: LectureResponses.LECTURE_LIST,
+            200: LectureListSerializer(many=True),
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
         },
@@ -63,7 +61,7 @@ from api.v1.homework.serializers import (
         description="Create a new lecture for a course (course teachers only)",
         request=LectureCreateSerializer,
         responses={
-            201: LectureResponses.LECTURE_CREATED,
+            201: LectureDetailSerializer,
             400: CommonResponses.VALIDATION_ERROR,
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
@@ -86,7 +84,7 @@ from api.v1.homework.serializers import (
         description="Update a specific lecture by ID (course teachers only)",
         request=LectureUpdateSerializer,
         responses={
-            200: LectureResponses.LECTURE_CREATED,
+            200: LectureDetailSerializer,
             400: CommonResponses.VALIDATION_ERROR,
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
@@ -99,7 +97,7 @@ from api.v1.homework.serializers import (
         description="Partially update a specific lecture by ID (course teachers only)",
         request=LectureUpdateSerializer,
         responses={
-            200: LectureResponses.LECTURE_CREATED,
+            200: LectureDetailSerializer,
             400: CommonResponses.VALIDATION_ERROR,
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,
@@ -189,7 +187,7 @@ class LectureViewSet(viewsets.ModelViewSet):
         description=("Create a new homework assignment for a specific lecture"),
         request=HomeworkCreateSerializer,
         responses={
-            201: HomeworkResponses.HOMEWORK_CREATED,
+            201: HomeworkDetailSerializer,
             400: CommonResponses.VALIDATION_ERROR,
             401: CommonResponses.UNAUTHORIZED,
             403: CommonResponses.PERMISSION_DENIED,

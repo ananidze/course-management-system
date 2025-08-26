@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from decouple import config
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,7 +40,6 @@ ALLOWED_HOSTS = config(
 # Application definition
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     # Third party apps
     "corsheaders",
     "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     # Local apps
     "api",
@@ -60,6 +62,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.gzip.GZipMiddleware",  # Enable gzip compression
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -152,6 +155,9 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# URL Configuration
+APPEND_SLASH = False
+
 # Custom User model
 AUTH_USER_MODEL = "users.User"
 USERNAME_FIELD = "email"
@@ -159,18 +165,29 @@ USERNAME_FIELD = "email"
 # Django REST Framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 20,
+    "DEFAULT_PAGINATION_CLASS": "api.core.pagination.StandardResultsSetPagination",
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
     "DEFAULT_VERSION": "v1",
     "ALLOWED_VERSIONS": ["v1"],
     "VERSION_PARAM": "version",
+    "EXCEPTION_HANDLER": "api.core.exceptions.custom_exception_handler",
+    "URL_FORMAT_OVERRIDE": None,
+}
+
+# JWT Settings
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
 }
 
 # CORS settings
@@ -186,10 +203,17 @@ CORS_ALLOW_CREDENTIALS = True
 # drf-spectacular settings
 SPECTACULAR_SETTINGS = {
     "TITLE": "Course Management System API",
-    "DESCRIPTION": "API for managing courses, lectures, homework, and student submissions",
+    "DESCRIPTION": (
+        "API for managing courses, lectures, homework, and student submissions"
+    ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": "/api/v1/",
     "SCHEMA_PATH_PREFIX_TRIM": False,
+    "SECURITY": [{"Bearer": []}],
+    "SERVERS": [
+        {"url": "http://localhost:8000", "description": "Development server"},
+    ],
+    "ENABLE_DUPLICATE_REQUEST_BODY": False,
 }

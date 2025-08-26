@@ -18,16 +18,6 @@ class Homework(models.Model):
     due_date = models.DateTimeField(
         help_text="Due date for homework submission", db_index=True
     )
-    max_points = models.PositiveIntegerField(
-        default=100,
-        validators=[MinValueValidator(1), MaxValueValidator(100)],
-        help_text="Maximum points for this homework",
-    )
-    is_active = models.BooleanField(
-        default=True,
-        help_text="Whether the homework is active and accepting submissions",
-        db_index=True,
-    )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -37,9 +27,9 @@ class Homework(models.Model):
         verbose_name_plural = "Homework"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["lecture", "is_active"]),
-            models.Index(fields=["due_date", "is_active"]),
-            models.Index(fields=["created_at", "is_active"]),
+            models.Index(fields=["lecture", "due_date"]),
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["title"]),
         ]
 
     def __str__(self):
@@ -67,8 +57,6 @@ class Homework(models.Model):
         return 0
 
     def can_submit(self, user):
-        if not self.is_active:
-            return False
         if self.is_overdue:
             return False
         return self.lecture.course.is_enrolled_student(user)
@@ -106,12 +94,6 @@ class HomeworkSubmission(models.Model):
         db_index=True,
     )
     content = models.TextField(help_text="Homework submission content")
-    attachment = models.FileField(
-        upload_to="homework_submissions/",
-        blank=True,
-        null=True,
-        help_text="Optional attachment file",
-    )
     submitted_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -125,6 +107,8 @@ class HomeworkSubmission(models.Model):
             models.Index(fields=["homework", "student"]),
             models.Index(fields=["student", "submitted_at"]),
             models.Index(fields=["submitted_at"]),
+            models.Index(fields=["homework", "submitted_at"]),
+            models.Index(fields=["student", "homework"]),
         ]
 
     def __str__(self):
@@ -158,7 +142,8 @@ class Grade(models.Model):
         help_text="Grade (0-100)",
     )
     comments = models.TextField(
-        blank=True, help_text="Teacher comments on the submission"
+        blank=True,
+        help_text="Comments on the submission (teachers and students can add comments)",
     )
     graded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -179,6 +164,7 @@ class Grade(models.Model):
             models.Index(fields=["submission"]),
             models.Index(fields=["graded_by", "graded_at"]),
             models.Index(fields=["graded_at"]),
+            models.Index(fields=["submission", "graded_at"]),
         ]
 
     def __str__(self):

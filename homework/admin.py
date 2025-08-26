@@ -5,14 +5,14 @@ from .models import Homework, HomeworkSubmission, Grade
 
 @admin.register(Homework)
 class HomeworkAdmin(admin.ModelAdmin):
-    list_display = ("title", "lecture", "due_date", "is_active", "created_at")
-    list_filter = ("is_active", "created_at", "lecture__course")
+    list_display = ("title", "lecture", "due_date", "created_at")
+    list_filter = ("created_at", "lecture__course")
     search_fields = ("title", "description", "lecture__topic")
     ordering = ("-created_at",)
 
     fieldsets = (
         (_("Basic Information"), {"fields": ("lecture", "title", "description")}),
-        (_("Settings"), {"fields": ("due_date", "max_points", "is_active")}),
+        (_("Settings"), {"fields": ("due_date",)}),
     )
 
     def has_delete_permission(self, request, obj=None):
@@ -40,12 +40,16 @@ class HomeworkSubmissionAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         if obj is None:
             return True
-        return request.user.is_superuser or obj.homework.lecture.course.is_teacher(request.user)
+        return request.user.is_superuser or obj.homework.lecture.course.is_teacher(
+            request.user
+        )
 
     def has_change_permission(self, request, obj=None):
         if obj is None:
             return True
-        return request.user.is_superuser or obj.homework.lecture.course.is_teacher(request.user)
+        return request.user.is_superuser or obj.homework.lecture.course.is_teacher(
+            request.user
+        )
 
 
 @admin.register(Grade)
@@ -56,7 +60,10 @@ class GradeAdmin(admin.ModelAdmin):
     ordering = ("-graded_at",)
 
     fieldsets = (
-        (_("Grade Information"), {"fields": ("submission", "grade", "comments", "graded_by")}),
+        (
+            _("Grade Information"),
+            {"fields": ("submission", "grade", "comments", "graded_by")},
+        ),
     )
 
     def has_delete_permission(self, request, obj=None):

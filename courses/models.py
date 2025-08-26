@@ -42,6 +42,9 @@ class Course(models.Model):
         indexes = [
             models.Index(fields=["teacher", "is_active"]),
             models.Index(fields=["created_at", "is_active"]),
+            models.Index(fields=["title"]),
+            models.Index(fields=["teacher", "created_at"]),
+            models.Index(fields=["is_active", "created_at"]),
         ]
 
     def __str__(self):

@@ -21,6 +21,7 @@ class User(AbstractUser):
     email = models.EmailField(
         unique=True,
         verbose_name=_("Email address"),
+        db_index=True,
     )
 
     first_name = models.CharField(
@@ -39,6 +40,7 @@ class User(AbstractUser):
         choices=Role.choices,
         default=Role.STUDENT,
         verbose_name=_("Role"),
+        db_index=True,
     )
 
     gender = models.CharField(
@@ -51,6 +53,12 @@ class User(AbstractUser):
         db_table = "users"
         verbose_name = _("User")
         verbose_name_plural = _("Users")
+        indexes = [
+            models.Index(fields=["email"]),
+            models.Index(fields=["role"]),
+            models.Index(fields=["role", "is_active"]),
+            models.Index(fields=["date_joined"]),
+        ]
 
     @property
     def is_teacher(self):

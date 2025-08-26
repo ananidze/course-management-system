@@ -1,6 +1,4 @@
 from django.db import models
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
 from courses.models import Course
 
 
@@ -36,14 +34,15 @@ class Lecture(models.Model):
         indexes = [
             models.Index(fields=["course", "is_published"]),
             models.Index(fields=["is_published", "created_at"]),
+            models.Index(fields=["course", "created_at"]),
+            models.Index(fields=["topic"]),
+            models.Index(fields=["course", "is_published", "created_at"]),
         ]
 
     def __str__(self):
         return f"{self.course.title} - {self.topic}"
 
     def can_access(self, user):
-        if not self.is_published:
-            return self.course.is_teacher(user)
         return self.course.can_access(user)
 
     @property

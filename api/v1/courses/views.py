@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from django.db.models import Count
 from django.core.exceptions import ValidationError
+from users.models import User
 
 from api.core.responses import APIResponse
 from api.core.permissions import (
@@ -223,27 +224,43 @@ class CourseViewSet(DocumentedModelViewSet):
     @extend_schema(
         summary="Remove Student from Course",
         description="Remove a student from a course (teachers only)",
-        request=CourseEnrollmentSerializer,
         responses={
             200: CommonResponses.SUCCESS_RESPONSE,
             400: CommonResponses.VALIDATION_ERROR,
             403: CommonResponses.PERMISSION_DENIED,
+            404: CommonResponses.NOT_FOUND,
         },
         tags=["courses"],
     )
-    @action(detail=True, methods=["delete"], url_path="remove-student")
-    def remove_student(self, request, pk=None):
+    @action(
+        detail=True, methods=["delete"], url_path="remove-student/(?P<user_id>[0-9]+)"
+    )
+    def remove_student(self, request, pk=None, user_id=None):
         course = self.get_object()
 
-        serializer = CourseEnrollmentSerializer(data=request.data)
-        if serializer.is_valid():
-            student = serializer.validated_data["user_id"]
-
-            course.students.remove(student)
-            return APIResponse.success(
-                message="Student removed from course successfully"
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return APIResponse.error(
+                message="User does not exist.",
+                status_code=status.HTTP_404_NOT_FOUND,
             )
-        return APIResponse.validation_error(serializer.errors)
+
+        if user.role != user.Role.STUDENT:
+            return APIResponse.error(
+                message="Only students can be removed from courses.",
+                error_code="INVALID_USER_ROLE",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not course.students.filter(id=user.id).exists():
+            return APIResponse.error(
+                message="User is not enrolled in this course.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        course.students.remove(user)
+        return APIResponse.success(message="Student removed from course successfully")
 
     @extend_schema(
         summary="Add Teacher to Course",
@@ -277,27 +294,50 @@ class CourseViewSet(DocumentedModelViewSet):
     @extend_schema(
         summary="Remove Teacher from Course",
         description="Remove a teacher from a course (course owner only)",
-        request=CourseEnrollmentSerializer,
         responses={
             200: CommonResponses.SUCCESS_RESPONSE,
             400: CommonResponses.VALIDATION_ERROR,
             403: CommonResponses.PERMISSION_DENIED,
+            404: CommonResponses.NOT_FOUND,
         },
         tags=["courses"],
     )
-    @action(detail=True, methods=["delete"], url_path="remove-teacher")
-    def remove_teacher(self, request, pk=None):
+    @action(
+        detail=True, methods=["delete"], url_path="remove-teacher/(?P<user_id>[0-9]+)"
+    )
+    def remove_teacher(self, request, pk=None, user_id=None):
         course = self.get_object()
 
-        serializer = CourseEnrollmentSerializer(data=request.data)
-        if serializer.is_valid():
-            teacher = serializer.validated_data["user_id"]
-
-            course.teachers.remove(teacher)
-            return APIResponse.success(
-                message="Teacher removed from course successfully"
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return APIResponse.error(
+                message="User does not exist.",
+                status_code=status.HTTP_404_NOT_FOUND,
             )
-        return APIResponse.validation_error(serializer.errors)
+
+        if user.role != user.Role.TEACHER:
+            return APIResponse.error(
+                message="Only teachers can be removed from courses.",
+                error_code="INVALID_USER_ROLE",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not course.teachers.filter(id=user.id).exists():
+            return APIResponse.error(
+                message="User is not a teacher of this course.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Prevent removing the course owner
+        if user == course.teacher:
+            return APIResponse.error(
+                message="Cannot remove the course owner.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        course.teachers.remove(user)
+        return APIResponse.success(message="Teacher removed from course successfully")
 
     @extend_schema(
         summary="List Course Lectures",

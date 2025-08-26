@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from django.db.models import Count
 from django.core.exceptions import ValidationError
 from users.models import User
+from rest_framework import viewsets
 
 from api.core.responses import APIResponse
 from api.core.permissions import (
@@ -14,6 +15,7 @@ from api.core.permissions import (
     IsCourseTeacher,
     IsCourseOwner,
 )
+
 from api.core.documentation import (
     CommonResponses,
     CommonParameters,
@@ -36,7 +38,52 @@ from api.v1.lectures.serializers import (
     LectureUpdateSerializer,
     LectureDetailSerializer,
     LectureListSerializer,
+    LectureSerializer,
 )
+
+
+class CourseLectureViewSet(viewsets.ModelViewSet):
+    serializer_class = LectureListSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        course_id = self.kwargs.get("course_pk")
+        return Lecture.objects.filter(course_id=course_id).select_related("course")
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return LectureCreateSerializer
+        elif self.action in ["update", "partial_update"]:
+            return LectureUpdateSerializer
+        elif self.action == "retrieve":
+            return LectureDetailSerializer
+        elif self.action == "list":
+            return LectureListSerializer
+        return LectureSerializer
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            permission_classes = [IsCourseTeacher]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def perform_create(self, serializer):
+        course_id = self.kwargs.get("course_pk")
+        course = Course.objects.get(id=course_id)
+        serializer.save(course=course)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        return context
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        instance.delete()
 
 
 @extend_schema_view(
@@ -338,192 +385,6 @@ class CourseViewSet(DocumentedModelViewSet):
 
         course.teachers.remove(user)
         return APIResponse.success(message="Teacher removed from course successfully")
-
-    @extend_schema(
-        summary="List Course Lectures",
-        description="Retrieve a list of lectures for a specific course",
-        parameters=[
-            CommonParameters.PAGE,
-            CommonParameters.PAGE_SIZE,
-            CommonParameters.ORDERING,
-        ],
-        responses={
-            200: LectureListSerializer(many=True),
-            401: CommonResponses.UNAUTHORIZED,
-            403: CommonResponses.PERMISSION_DENIED,
-            404: CommonResponses.NOT_FOUND,
-        },
-        tags=["lectures"],
-    )
-    @action(detail=True, methods=["get"], url_path="lectures")
-    def list_lectures(self, request, pk=None):
-        course = self.get_object()
-
-        if not course.can_access(request.user):
-            return APIResponse.error(
-                message="You don't have permission to access this course.",
-                status_code=status.HTTP_403_FORBIDDEN,
-            )
-
-        lectures = Lecture.objects.filter(course=course).select_related("course")
-
-        ordering = request.query_params.get("ordering", "created_at")
-        if ordering:
-            lectures = lectures.order_by(ordering)
-
-        page = self.paginate_queryset(lectures)
-        if page is not None:
-            serializer = LectureListSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = LectureListSerializer(lectures, many=True)
-        return Response(serializer.data)
-
-    @extend_schema(
-        summary="Get Course Lecture",
-        description="Retrieve a specific lecture from a course",
-        responses={
-            200: LectureDetailSerializer,
-            401: CommonResponses.UNAUTHORIZED,
-            403: CommonResponses.PERMISSION_DENIED,
-            404: CommonResponses.NOT_FOUND,
-        },
-        tags=["lectures"],
-    )
-    @action(detail=True, methods=["get"], url_path="lectures/(?P<lecture_id>[^/.]+)")
-    def get_lecture(self, request, pk=None, lecture_id=None):
-        course = self.get_object()
-
-        try:
-            lecture = Lecture.objects.select_related("course").get(
-                id=lecture_id, course=course
-            )
-        except Lecture.DoesNotExist:
-            return APIResponse.error(
-                message="Lecture not found.",
-                status_code=status.HTTP_404_NOT_FOUND,
-            )
-
-        if not lecture.can_access(request.user):
-            return APIResponse.error(
-                message="You don't have permission to access this lecture.",
-                status_code=status.HTTP_403_FORBIDDEN,
-            )
-
-        serializer = LectureDetailSerializer(lecture)
-        return Response(serializer.data)
-
-    @extend_schema(
-        summary="Create Course Lecture",
-        description="Create a new lecture for a course (teachers only)",
-        request=LectureCreateSerializer,
-        responses={
-            201: LectureDetailSerializer,
-            400: CommonResponses.VALIDATION_ERROR,
-            401: CommonResponses.UNAUTHORIZED,
-            403: CommonResponses.PERMISSION_DENIED,
-            404: CommonResponses.NOT_FOUND,
-        },
-        tags=["lectures"],
-    )
-    @action(detail=True, methods=["post"], url_path="lectures")
-    def create_lecture(self, request, pk=None):
-        course = self.get_object()
-
-        if not course.is_teacher(request.user):
-            return APIResponse.error(
-                message="Only teachers can create lectures for this course.",
-                status_code=status.HTTP_403_FORBIDDEN,
-            )
-
-        serializer = LectureCreateSerializer(
-            data=request.data, context={"request": request}
-        )
-
-        if serializer.is_valid():
-            lecture = serializer.save(course=course)
-            response_serializer = LectureDetailSerializer(lecture)
-            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-
-        return APIResponse.validation_error(serializer.errors)
-
-    @extend_schema(
-        summary="Update Course Lecture",
-        description="Update a specific lecture in a course (teachers only)",
-        request=LectureUpdateSerializer,
-        responses={
-            200: LectureDetailSerializer,
-            400: CommonResponses.VALIDATION_ERROR,
-            401: CommonResponses.UNAUTHORIZED,
-            403: CommonResponses.PERMISSION_DENIED,
-            404: CommonResponses.NOT_FOUND,
-        },
-        tags=["lectures"],
-    )
-    @action(detail=True, methods=["put"], url_path="lectures/(?P<lecture_id>[^/.]+)")
-    def update_lecture(self, request, pk=None, lecture_id=None):
-        course = self.get_object()
-
-        try:
-            lecture = Lecture.objects.select_related("course").get(
-                id=lecture_id, course=course
-            )
-        except Lecture.DoesNotExist:
-            return APIResponse.error(
-                message="Lecture not found.",
-                status_code=status.HTTP_404_NOT_FOUND,
-            )
-
-        if not course.is_teacher(request.user):
-            return APIResponse.error(
-                message="Only teachers can update lectures for this course.",
-                status_code=status.HTTP_403_FORBIDDEN,
-            )
-
-        serializer = LectureUpdateSerializer(
-            lecture, data=request.data, context={"request": request}
-        )
-
-        if serializer.is_valid():
-            updated_lecture = serializer.save()
-            response_serializer = LectureDetailSerializer(updated_lecture)
-            return Response(response_serializer.data)
-
-        return APIResponse.validation_error(serializer.errors)
-
-    @extend_schema(
-        summary="Delete Course Lecture",
-        description="Delete a specific lecture from a course (teachers only)",
-        responses={
-            204: CommonResponses.SUCCESS_RESPONSE,
-            401: CommonResponses.UNAUTHORIZED,
-            403: CommonResponses.PERMISSION_DENIED,
-            404: CommonResponses.NOT_FOUND,
-        },
-        tags=["lectures"],
-    )
-    @action(detail=True, methods=["delete"], url_path="lectures/(?P<lecture_id>[^/.]+)")
-    def delete_lecture(self, request, pk=None, lecture_id=None):
-        course = self.get_object()
-
-        try:
-            lecture = Lecture.objects.select_related("course").get(
-                id=lecture_id, course=course
-            )
-        except Lecture.DoesNotExist:
-            return APIResponse.error(
-                message="Lecture not found.",
-                status_code=status.HTTP_404_NOT_FOUND,
-            )
-
-        if not course.is_teacher(request.user):
-            return APIResponse.error(
-                message="Only teachers can delete lectures for this course.",
-                status_code=status.HTTP_403_FORBIDDEN,
-            )
-
-        lecture.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
         summary="List Available Courses",

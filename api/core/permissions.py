@@ -17,7 +17,11 @@ class IsCourseTeacher(BasePermission):
         return request.user.is_authenticated and request.user.role == User.Role.TEACHER
 
     def has_object_permission(self, request, view, obj):
-        return request.user == obj.teacher or request.user in obj.teachers.all()
+        if hasattr(obj, 'course'):
+            course = obj.course
+            return request.user == course.teacher or request.user in course.teachers.all()
+        else:
+            return request.user == obj.teacher or request.user in obj.teachers.all()
 
 
 class IsCourseOwner(BasePermission):

@@ -1,6 +1,7 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import extend_schema
+from api.core.documentation import CommonResponses
 from api.core.responses import APIResponse
 
 
@@ -8,16 +9,7 @@ from api.core.responses import APIResponse
     summary="Health Check",
     description="Check if the API is running and healthy",
     responses={
-        200: OpenApiResponse(
-            description="API is healthy",
-            examples=[
-                {
-                    "success": True,
-                    "message": "API is healthy",
-                    "data": {"status": "healthy", "version": "v1"},
-                }
-            ],
-        )
+        200: CommonResponses.SUCCESS_RESPONSE,
     },
     tags=["health"],
 )

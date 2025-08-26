@@ -4,7 +4,6 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
-    OpenApiResponse,
 )
 from django.db import models
 from rest_framework.views import PermissionDenied
@@ -229,9 +228,9 @@ class LectureViewSet(viewsets.ModelViewSet):
         request=HomeworkUpdateSerializer,
         responses={
             200: HomeworkDetailSerializer,
-            400: OpenApiResponse(description="Bad request"),
-            403: OpenApiResponse(description="Permission denied"),
-            404: OpenApiResponse(description="Lecture or homework not found"),
+            400: CommonResponses.VALIDATION_ERROR,
+            403: CommonResponses.PERMISSION_DENIED,
+            404: CommonResponses.NOT_FOUND,
         },
         tags=["homework"],
     )
@@ -274,9 +273,9 @@ class LectureViewSet(viewsets.ModelViewSet):
             "Delete a specific homework assignment from a lecture (teachers only)"
         ),
         responses={
-            204: OpenApiResponse(description="Homework deleted successfully"),
-            403: OpenApiResponse(description="Permission denied"),
-            404: OpenApiResponse(description="Lecture or homework not found"),
+            204: CommonResponses.SUCCESS_RESPONSE,
+            403: CommonResponses.PERMISSION_DENIED,
+            404: CommonResponses.NOT_FOUND,
         },
         tags=["homework"],
     )
@@ -310,8 +309,8 @@ class LectureViewSet(viewsets.ModelViewSet):
         description="Retrieve all homework assignments for a specific lecture",
         responses={
             200: HomeworkDetailSerializer(many=True),
-            403: OpenApiResponse(description="Permission denied"),
-            404: OpenApiResponse(description="Lecture not found"),
+            403: CommonResponses.PERMISSION_DENIED,
+            404: CommonResponses.NOT_FOUND,
         },
         tags=["homework"],
     )
@@ -342,8 +341,8 @@ class LectureViewSet(viewsets.ModelViewSet):
         description="Retrieve a specific homework assignment for a lecture",
         responses={
             200: HomeworkDetailSerializer,
-            403: OpenApiResponse(description="Permission denied"),
-            404: OpenApiResponse(description="Lecture or homework not found"),
+            403: CommonResponses.PERMISSION_DENIED,
+            404: CommonResponses.NOT_FOUND,
         },
         tags=["homework"],
     )

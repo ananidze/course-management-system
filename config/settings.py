@@ -97,14 +97,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASE_TYPE = config("DATABASE_TYPE", default="sqlite")
 
-if DATABASE_TYPE == "sqlite":
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / config("SQLITE_DB_NAME", default="db.sqlite3"),
-        }
-    }
-else:
+if DATABASE_TYPE == "postgresql":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -113,6 +106,13 @@ else:
             "PASSWORD": config("DB_PASSWORD", default="course_management"),
             "HOST": config("DB_HOST", default="localhost"),
             "PORT": config("DB_PORT", default="5432"),
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / config("SQLITE_DB_NAME", default="db.sqlite3"),
         }
     }
 

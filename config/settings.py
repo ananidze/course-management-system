@@ -95,16 +95,26 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("DB_NAME", default="course_management"),
-        "USER": config("DB_USER", default="course_management"),
-        "PASSWORD": config("DB_PASSWORD", default="course_management"),
-        "HOST": config("DB_HOST", default="localhost"),
-        "PORT": config("DB_PORT", default="5432"),
+DATABASE_TYPE = config("DATABASE_TYPE", default="sqlite")
+
+if DATABASE_TYPE == "sqlite":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / config("SQLITE_DB_NAME", default="db.sqlite3"),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": config("DB_NAME", default="course_management"),
+            "USER": config("DB_USER", default="course_management"),
+            "PASSWORD": config("DB_PASSWORD", default="course_management"),
+            "HOST": config("DB_HOST", default="localhost"),
+            "PORT": config("DB_PORT", default="5432"),
+        }
+    }
 
 
 # Password validation

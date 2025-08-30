@@ -265,7 +265,7 @@ class CourseViewSet(DocumentedModelViewSet):
                 )
 
             course.students.add(student)
-            return APIResponse.success(message="Student added to course successfully")
+            return APIResponse.success()
         return APIResponse.validation_error(serializer.errors)
 
     @extend_schema(
@@ -307,7 +307,7 @@ class CourseViewSet(DocumentedModelViewSet):
             )
 
         course.students.remove(user)
-        return APIResponse.success(message="Student removed from course successfully")
+        return APIResponse.success()
 
     @extend_schema(
         summary="Add Teacher to Course",
@@ -335,7 +335,7 @@ class CourseViewSet(DocumentedModelViewSet):
                 )
 
             course.teachers.add(teacher)
-            return APIResponse.success(message="Teacher added to course successfully")
+            return APIResponse.success()
         return APIResponse.validation_error(serializer.errors)
 
     @extend_schema(
@@ -384,7 +384,7 @@ class CourseViewSet(DocumentedModelViewSet):
             )
 
         course.teachers.remove(user)
-        return APIResponse.success(message="Teacher removed from course successfully")
+        return APIResponse.success()
 
     @extend_schema(
         summary="List Available Courses",
@@ -476,7 +476,7 @@ class CourseViewSet(DocumentedModelViewSet):
 
         try:
             course.add_student(user)
-            return APIResponse.success(message="Successfully enrolled in the course")
+            return APIResponse.success()
         except ValidationError as e:
             return APIResponse.error(
                 message=str(e),
@@ -513,7 +513,7 @@ class CourseViewSet(DocumentedModelViewSet):
             )
 
         course.remove_student(user)
-        return APIResponse.success(message="Successfully unenrolled from the course")
+        return APIResponse.success()
 
     @extend_schema(
         summary="List Students of a Course",

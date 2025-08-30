@@ -38,7 +38,6 @@ def user_registration(request):
             data={
                 "user": UserProfileSerializer(user).data,
             },
-            message="User registered successfully",
         )
     return APIResponse.validation_error(serializer.errors)
 
@@ -71,7 +70,6 @@ def user_login(request):
                 },
                 "user": UserProfileSerializer(user).data,
             },
-            message="Login successful",
         )
     return APIResponse.validation_error(serializer.errors)
 
@@ -94,9 +92,9 @@ def user_logout(request):
             token = RefreshToken(refresh_token)
             token.blacklist()
         logout(request)
-        return APIResponse.success(message="Logout successful")
+        return APIResponse.success()
     except Exception:
-        return APIResponse.success(message="Logout successful")
+        return APIResponse.success()
 
 
 @extend_schema(
@@ -112,6 +110,4 @@ def user_logout(request):
 @permission_classes([IsAuthenticated])
 def get_current_user(request):
     serializer = UserProfileSerializer(request.user)
-    return APIResponse.success(
-        data=serializer.data, message="User profile retrieved successfully"
-    )
+    return APIResponse.success(data=serializer.data)

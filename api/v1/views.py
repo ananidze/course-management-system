@@ -22,5 +22,4 @@ def health_check(request):
             "version": "v1",
             "timestamp": request.data.get("timestamp", None),
         },
-        message="API is healthy",
     )

@@ -171,14 +171,11 @@ class HomeworkViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(page, many=True)
             return APIResponse.success(
                 data=serializer.data,
-                message="Homework list retrieved successfully",
                 meta=self.paginator.get_paginated_response_data(serializer.data),
             )
 
         serializer = self.get_serializer(queryset, many=True)
-        return APIResponse.success(
-            data=serializer.data, message="Homework list retrieved successfully"
-        )
+        return APIResponse.success(data=serializer.data)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -186,7 +183,6 @@ class HomeworkViewSet(viewsets.ModelViewSet):
             homework = serializer.save()
             return APIResponse.created(
                 data=HomeworkDetailSerializer(homework).data,
-                message="Homework created successfully",
             )
         return APIResponse.validation_error(
             errors=serializer.errors, message="Homework creation failed"
@@ -196,9 +192,7 @@ class HomeworkViewSet(viewsets.ModelViewSet):
         try:
             homework = self.get_object()
             serializer = self.get_serializer(homework)
-            return APIResponse.success(
-                data=serializer.data, message="Homework retrieved successfully"
-            )
+            return APIResponse.success(data=serializer.data)
         except Homework.DoesNotExist:
             raise ResourceNotFoundException("Homework not found")
 
@@ -210,7 +204,6 @@ class HomeworkViewSet(viewsets.ModelViewSet):
                 updated_homework = serializer.save()
                 return APIResponse.updated(
                     data=HomeworkDetailSerializer(updated_homework).data,
-                    message="Homework updated successfully",
                 )
             return APIResponse.validation_error(
                 errors=serializer.errors, message="Homework update failed"
@@ -226,7 +219,6 @@ class HomeworkViewSet(viewsets.ModelViewSet):
                 updated_homework = serializer.save()
                 return APIResponse.updated(
                     data=HomeworkDetailSerializer(updated_homework).data,
-                    message="Homework updated successfully",
                 )
             return APIResponse.validation_error(
                 errors=serializer.errors, message="Homework update failed"
@@ -246,7 +238,7 @@ class HomeworkViewSet(viewsets.ModelViewSet):
                 )
 
             homework.delete()
-            return APIResponse.deleted("Homework deleted successfully")
+            return APIResponse.deleted()
         except Homework.DoesNotExist:
             raise ResourceNotFoundException("Homework not found")
 
@@ -288,7 +280,6 @@ class HomeworkViewSet(viewsets.ModelViewSet):
                 submission = serializer.save(homework=homework, student=user)
                 return APIResponse.created(
                     data=HomeworkSubmissionDetailSerializer(submission).data,
-                    message="Homework submitted successfully",
                 )
             return APIResponse.validation_error(
                 errors=serializer.errors, message="Homework submission failed"
@@ -335,14 +326,12 @@ class HomeworkViewSet(viewsets.ModelViewSet):
                 serializer = HomeworkSubmissionDetailSerializer(page, many=True)
                 return APIResponse.success(
                     data=serializer.data,
-                    message="Homework submissions retrieved successfully",
                     meta=self.paginator.get_paginated_response_data(serializer.data),
                 )
 
             serializer = HomeworkSubmissionDetailSerializer(submissions, many=True)
             return APIResponse.success(
                 data=serializer.data,
-                message="Homework submissions retrieved successfully",
             )
         except Homework.DoesNotExist:
             raise ResourceNotFoundException("Homework not found")
@@ -420,22 +409,17 @@ class HomeworkSubmissionViewSet(viewsets.ReadOnlyModelViewSet):
             serializer = self.get_serializer(page, many=True)
             return APIResponse.success(
                 data=serializer.data,
-                message="Submissions list retrieved successfully",
                 meta=self.paginator.get_paginated_response_data(serializer.data),
             )
 
         serializer = self.get_serializer(queryset, many=True)
-        return APIResponse.success(
-            data=serializer.data, message="Submissions list retrieved successfully"
-        )
+        return APIResponse.success(data=serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
         try:
             submission = self.get_object()
             serializer = self.get_serializer(submission)
-            return APIResponse.success(
-                data=serializer.data, message="Submission retrieved successfully"
-            )
+            return APIResponse.success(data=serializer.data)
         except HomeworkSubmission.DoesNotExist:
             raise ResourceNotFoundException("Submission not found")
 
@@ -477,7 +461,6 @@ class HomeworkSubmissionViewSet(viewsets.ReadOnlyModelViewSet):
                 grade = serializer.save(submission=submission, graded_by=user)
                 return APIResponse.created(
                     data=HomeworkSubmissionDetailSerializer(submission).data,
-                    message="Grade created successfully",
                 )
             return APIResponse.validation_error(
                 errors=serializer.errors, message="Grade creation failed"
@@ -525,7 +508,6 @@ class HomeworkSubmissionViewSet(viewsets.ReadOnlyModelViewSet):
                 serializer.save()
                 return APIResponse.updated(
                     data=HomeworkSubmissionDetailSerializer(submission).data,
-                    message="Grade updated successfully",
                 )
             return APIResponse.validation_error(
                 errors=serializer.errors, message="Grade update failed"

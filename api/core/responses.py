@@ -7,11 +7,14 @@ class APIResponse:
     @staticmethod
     def success(
         data: Any = None,
-        message: str = "Success",
+        message: Optional[str] = None,
         status_code: int = status.HTTP_200_OK,
         **kwargs,
     ) -> Response:
-        response_data = {"success": True, "message": message, "data": data, **kwargs}
+        response_data = {"success": True, "data": data, **kwargs}
+
+        if message is not None:
+            response_data["message"] = message
 
         response_data = {k: v for k, v in response_data.items() if v is not None}
 
@@ -38,19 +41,15 @@ class APIResponse:
         return Response(response_data, status=status_code)
 
     @staticmethod
-    def created(
-        data: Any = None, message: str = "Resource created successfully", **kwargs
-    ) -> Response:
+    def created(data: Any = None, message: Optional[str] = None, **kwargs) -> Response:
         return APIResponse.success(data, message, status.HTTP_201_CREATED, **kwargs)
 
     @staticmethod
-    def updated(
-        data: Any = None, message: str = "Resource updated successfully", **kwargs
-    ) -> Response:
+    def updated(data: Any = None, message: Optional[str] = None, **kwargs) -> Response:
         return APIResponse.success(data, message, status.HTTP_200_OK, **kwargs)
 
     @staticmethod
-    def deleted(message: str = "Resource deleted successfully", **kwargs) -> Response:
+    def deleted(message: Optional[str] = None, **kwargs) -> Response:
         return APIResponse.success(None, message, status.HTTP_204_NO_CONTENT, **kwargs)
 
     @staticmethod

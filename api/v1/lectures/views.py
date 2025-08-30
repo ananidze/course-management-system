@@ -343,7 +343,6 @@ class LectureHomeworkViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(queryset, many=True)
             return APIResponse.success(
                 data=serializer.data,
-                message="Homework list retrieved successfully",
             )
         except Lecture.DoesNotExist:
             raise ResourceNotFoundException("Lecture not found")
@@ -363,7 +362,6 @@ class LectureHomeworkViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(instance)
             return APIResponse.success(
                 data=serializer.data,
-                message="Homework retrieved successfully",
             )
         except Lecture.DoesNotExist:
             raise ResourceNotFoundException("Lecture not found")
@@ -388,7 +386,6 @@ class LectureHomeworkViewSet(viewsets.ModelViewSet):
                 homework = serializer.save(lecture=lecture)
                 return APIResponse.created(
                     data=HomeworkDetailSerializer(homework).data,
-                    message="Homework created successfully",
                 )
             return APIResponse.validation_error(
                 errors=serializer.errors, message="Homework creation failed"
@@ -419,7 +416,6 @@ class LectureHomeworkViewSet(viewsets.ModelViewSet):
                 updated_homework = serializer.save()
                 return APIResponse.updated(
                     data=HomeworkDetailSerializer(updated_homework).data,
-                    message="Homework updated successfully",
                 )
             return APIResponse.validation_error(
                 errors=serializer.errors, message="Homework update failed"
@@ -440,6 +436,6 @@ class LectureHomeworkViewSet(viewsets.ModelViewSet):
 
             instance = self.get_object()
             instance.delete()
-            return APIResponse.deleted("Homework deleted successfully")
+            return APIResponse.deleted()
         except Lecture.DoesNotExist:
             raise ResourceNotFoundException("Lecture not found")
